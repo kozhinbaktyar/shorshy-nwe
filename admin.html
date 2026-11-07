@@ -118,7 +118,10 @@
         .close-btn:hover { color: #000; }
         @keyframes fadeIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-        .img-preview { width: 100px; height: 100px; object-fit: cover; border-radius: 6px; display: none; margin-top: 8px; border: 1px solid #ccc; }
+        /* گەورەکردن و ڕێکخستنی قەبارەی وێنە و کامێرا لە بەشی تۆمارکردن */
+        .image-section { text-align: center; margin: 15px 0; }
+        .img-preview { width: 180px; height: 180px; object-fit: cover; border-radius: 10px; display: none; margin: 10px auto; border: 2px solid #34495e; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+        #webcam { width: 100%; max-width: 320px; border-radius: 10px; margin: 10px auto; display: block; border: 2px solid #34495e; }
 
         .card-scan-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
         .card-scan-row input#card-id { flex: 1; min-width: 160px; margin: 8px 0; }
@@ -150,7 +153,7 @@
 
     <div class="page-wrap">
     <div class="container">
-        <h2>پانێڵی بەڕێوبەرایەتی قوتابخانە</h2>
+        <h2>پانێڵی بەڕێوەبەرایەتی قوتابخانە</h2>
 
         <div class="stats-container">
             <div class="stat-card day-card">ڕۆژی چالاک: <span id="active-day-label">--</span></div>
@@ -197,14 +200,19 @@
                     <input type="text" id="student-class" placeholder="پۆل" required>
 
                     <div class="image-section">
-                        <label>وێنەی قوتابی (ئەگەر بیهێڵیتەوە بەتاڵ لە کاتی دەستکاریکردن، وێنەی پێشوو دەمێنێتەوە):</label>
+                        <label style="display:block; font-weight:bold; margin-bottom:6px;">وێنەی قوتابی (ئەگەر بیهێڵیتەوە بەتاڵ لە کاتی دەستکاریکردن، وێنەی پێشوو دەمێنێتەوە):</label>
                         <input type="file" id="student-file" accept="image/*">
-                        <video id="webcam" autoplay playsinline style="width:150px; display:none;"></video>
-                        <button type="button" id="btn-capture">کردنەوەی کامێرا</button>
-                        <button type="button" id="btn-take-pic" style="display:none;">گرتنی وێنە</button>
+                        
+                        <video id="webcam" autoplay playsinline style="display:none;"></video>
+                        <div style="margin-top: 8px;">
+                            <button type="button" id="btn-capture" class="btn-menu" style="font-size:14px; padding:8px 16px;">کردنەوەی کامێرا</button>
+                            <button type="button" id="btn-take-pic" class="btn-menu" style="font-size:14px; padding:8px 16px; background-color: #27ae60; display:none;">گرتنی وێنە</button>
+                        </div>
                         <canvas id="canvas" style="display:none;"></canvas>
+                        
                         <br>
-                        <img id="img-preview" class="img-preview">
+                        <!-- وێنەی پێشبینیکراو (گەورەکراو) -->
+                        <img id="img-preview" class="img-preview" alt="وێنەی قوتابی">
                     </div>
                     <button type="submit" class="btn-save">پاشکەوتکردن / نوێکردنەوە</button>
                     <button type="button" class="btn-cancel-edit" id="btn-cancel-edit">پاشگەزبوونەوە لە دەستکاریکردن</button>
@@ -250,10 +258,8 @@
             getDatabase, ref, set, get, child, onValue, remove, update 
         } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // بەکارهێنانی Realtime Database لەبری Firestore
         const db = getDatabase(app);
 
-        // ===== پاسەوانی چوونەژوورەوە =====
         const staff = await requireStaffAuth({ requireAdmin: true });
         const isAdmin = true;
         document.getElementById('staff-name-label').innerText = staff.name;
@@ -262,7 +268,6 @@
         if (isAdmin) roleTagEl.classList.add('admin');
         document.getElementById('btn-logout').addEventListener('click', logout);
 
-        // ===== دروستکردنی کۆدی نهێنی بۆ بەستنەوەی بەخێوکەر (Parent Link Code) =====
         function generateLinkCode(len = 14) {
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
             const arr = new Uint32Array(len);
@@ -270,7 +275,6 @@
             return Array.from(arr, n => chars[n % chars.length]).join('');
         }
 
-        // ===== دۆخی گشتی =====
         let capturedImageBase64 = null;
         let editingCardId = null;
         let studentsCache = [];
@@ -281,7 +285,6 @@
 
         function getTodayStr() { return new Date().toISOString().split('T')[0]; }
 
-        // ===== یارمەتیدەرەکانی مۆدال =====
         function openModal(id) { document.getElementById(id).style.display = "block"; }
         function closeModal(id) {
             document.getElementById(id).style.display = "none";
@@ -308,7 +311,6 @@
             loadMonthlyReport();
         });
 
-        // ===== کامێرا =====
         let webcamStream = null;
         document.getElementById('btn-capture').addEventListener('click', startWebcam);
         document.getElementById('btn-take-pic').addEventListener('click', takeSnapshot);
@@ -349,12 +351,9 @@
         function showPreview(src) {
             const img = document.getElementById('img-preview');
             img.src = src;
-            img.style.display = 'inline-block';
+            img.style.display = 'block';
         }
 
-        // ===== پەیوەستکردن بە کارتخوێن (Arduino/RFID - Web Serial) =====
-        // کاتێک کارتخوێن پەیوەست بێت، هەر کارتێک بخوێندرێتەوە خۆکارانە
-        // ژمارەکەی لە خانەی "ژمارەی کارت" دادەنرێت.
         let scanPort = null;
         let scanReader = null;
         let scanKeepReading = false;
@@ -441,7 +440,6 @@
             scanStatusEl.innerText = "✅ کارت خوێندرایەوە: " + cardId;
             scanStatusEl.classList.add('scanned');
 
-            // ئاگاداری کاتێک قوتابییەکی هەبوو بەم کارتەوە پێشتر تۆمار کراوە (لە کاتی زیادکردنی نوێ)
             if (!editingCardId) {
                 const existing = studentsCache.find(s => s.cardId === cardId);
                 if (existing) {
@@ -450,7 +448,6 @@
             }
         }
 
-        // ===== هەڵبژاردنی فایلی وێنە =====
         document.getElementById('student-file').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -462,7 +459,6 @@
             reader.readAsDataURL(file);
         });
 
-        // ===== فۆرم: نوێ یان دەستکاری =====
         function resetForm() {
             editingCardId = null;
             capturedImageBase64 = null;
@@ -504,7 +500,6 @@
             submitBtn.textContent = 'چاوەڕوانبە...';
 
             try {
-                // پشکنین بۆ هەبوونی قوتابی
                 if (!editingCardId) {
                     const snapshot = await get(child(ref(db), `students/${cardId}`));
                     if (snapshot.exists()) {
@@ -515,7 +510,6 @@
 
                 let payload = { cardId, name, class: sClass };
 
-                // هێنانی داتای کۆن ئەگەر لە دۆخی دەستکاریکردندا بین
                 if (editingCardId) {
                     const oldSnap = await get(child(ref(db), `students/${cardId}`));
                     if (oldSnap.exists()) {
@@ -526,12 +520,10 @@
                     payload.parentJoined = false;
                 }
 
-                // پاشکەوتکردنی وێنە بە شێوازی Base64
                 if (capturedImageBase64) {
                     payload.imageUrl = capturedImageBase64;
                 }
 
-                // پاشکەوتکردن لە Realtime Database
                 await set(ref(db, 'students/' + cardId), payload);
 
                 alert("قوتابی پاشکەوتکرا!" + (!editingCardId ? `\n\nکۆدی بەستنەوەی بەخێوکەر: ${payload.linkCode}\n(ئەم کۆدە لە خشتەی خوارەوەش دەتوانیت ببینیت)` : ''));
@@ -545,7 +537,6 @@
             }
         });
 
-        // ===== گەڕان لە خشتەی قوتابییان =====
         document.getElementById('student-search').addEventListener('input', (e) => {
             const q = e.target.value.trim().toLowerCase();
             document.querySelectorAll('#all-students-table-body tr').forEach(row => {
@@ -553,7 +544,6 @@
             });
         });
 
-        // ===== هێنانی داتا بە شێوەی زیندوو (Realtime Listener) =====
         onValue(ref(db, 'students'), (snapshot) => {
             studentsCache = [];
             if (snapshot.exists()) {
@@ -579,7 +569,6 @@
         subscribeAttendanceForDay(currentDay);
         document.getElementById('active-day-label').innerText = currentDay;
 
-        // پشکنین هەر ٦٠ چرکە جارێک بۆ گۆڕانی ڕۆژ
         setInterval(() => {
             const nowStr = getTodayStr();
             if (nowStr !== currentDay) {
@@ -589,7 +578,6 @@
             }
         }, 60000);
 
-        // ===== ڕەندەرکردن =====
         function render() {
             if (!studentsLoaded || !attendanceLoaded) return;
             document.getElementById('daily-loading').style.display = 'none';
@@ -631,7 +619,6 @@
                 if (status === 'present' || status === 'forgot-card') { presentList.appendChild(li); pCount++; }
                 else { absentList.appendChild(li); aCount++; }
 
-                // خشتەی گشتی
                 const row = document.createElement('tr');
                 const tdCard = document.createElement('td'); tdCard.textContent = student.cardId;
                 const tdName = document.createElement('td'); tdName.textContent = student.name;
@@ -662,7 +649,6 @@
                 row.appendChild(tdLink); row.appendChild(tdActions);
                 allStudentsTable.appendChild(row);
 
-                // بەخێوکەران
                 const pLi = document.createElement('li');
                 const pSpan = document.createElement('span');
                 pSpan.textContent = `${student.name} (بەخێوکەر): ${student.parentJoined ? '🟢 جۆین بووە' : '🔴 جۆین نەبووە'}`;
@@ -684,7 +670,6 @@
 
         function cssEscape(str) { return String(str).replace(/"/g, '&quot;'); }
 
-        // ===== event delegation: دوگمەکانی گۆڕینی دۆخی ئامادەبوون =====
         document.getElementById('present-list').addEventListener('click', handleStatusClick);
         document.getElementById('absent-list').addEventListener('click', handleStatusClick);
 
@@ -706,7 +691,6 @@
             }
         }
 
-        // ===== event delegation: دوگمەکانی خشتەی قوتابییان =====
         document.getElementById('all-students-table-body').addEventListener('click', (e) => {
             const btn = e.target.closest('button[data-action]');
             if (!btn) return;
@@ -767,7 +751,6 @@
             }
         }
 
-        // ===== ڕاپۆرتی مانگانەی غایبات =====
         async function loadMonthlyReport() {
             const tbody = document.getElementById('monthly-report-table-body');
             const loadingEl = document.getElementById('monthly-loading');
