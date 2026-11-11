@@ -64,21 +64,26 @@
         const studentsContainer = document.getElementById('students-container');
         const studentsGrid = document.getElementById('students-grid');
 
-        // چوونەژوورەوە
+        // چوونەژوورەوە لە ڕێگەی خشتەی staff کە لەلایەن بەڕێوەبەرەوە دروستکراوە
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const user = document.getElementById('username').value.trim();
+            const user = document.getElementById('username').value.trim().toLowerCase();
             const pass = document.getElementById('password').value.trim();
 
-            const snap = await get(child(ref(db), `teachers/${user}`));
-            if (snap.exists() && snap.val().password === pass) {
-                currentTeacher = snap.val();
-                document.getElementById('teacher-welcome').innerText = `مامۆستا: ${currentTeacher.name}`;
-                loginSection.style.display = 'none';
-                dashboardSection.style.display = 'block';
-                loadClasses();
-            } else {
-                alert('ناوی بەکارهێنەر یان پاسۆرد هەڵەیە!');
+            try {
+                const snap = await get(child(ref(db), `staff/${user}`));
+                if (snap.exists() && snap.val().password === pass) {
+                    currentTeacher = snap.val();
+                    document.getElementById('teacher-welcome').innerText = `مامۆستا: ${currentTeacher.name}`;
+                    loginSection.style.display = 'none';
+                    dashboardSection.style.display = 'block';
+                    loadClasses();
+                } else {
+                    alert('ناوی بەکارهێنەر یان پاسۆرد هەڵەیە!');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('هەڵە لە چوونەژوورەوە: ' + err.message);
             }
         });
 
@@ -88,18 +93,22 @@
 
         // هێنانی لیستەکانی پۆل
         async function loadClasses() {
-            const snap = await get(child(ref(db), 'students'));
-            if (snap.exists()) {
-                const data = snap.val();
-                const classes = new Set();
-                Object.values(data).forEach(s => { if(s.class) classes.add(s.class); });
-                
-                classSelect.innerHTML = '<option value="">-- دیاریکردنی پۆل --</option>';
-                classes.forEach(c => {
-                    const opt = document.createElement('option');
-                    opt.value = c; opt.textContent = c;
-                    classSelect.appendChild(opt);
-                });
+            try {
+                const snap = await get(child(ref(db), 'students'));
+                if (snap.exists()) {
+                    const data = snap.val();
+                    const classes = new Set();
+                    Object.values(data).forEach(s => { if(s.class) classes.add(s.class); });
+                    
+                    classSelect.innerHTML = '<option value="">-- دیاریکردنی پۆل --</option>';
+                    classes.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c; opt.textContent = c;
+                        classSelect.appendChild(opt);
+                    });
+                }
+            } catch (err) {
+                console.error('هەڵە لە هێنانی پۆلەکان:', err);
             }
         }
 
@@ -115,11 +124,18 @@
             studentsGrid.innerHTML = 'چاوەڕوانبە...';
             studentsContainer.style.display = 'block';
 
-            const snap = await get(child(ref(db), 'students'));
-            if (snap.exists()) {
-                const all = snap.val();
-                classStudents = Object.values(all).filter(s => s.class === selectedClass);
-                renderStudents();
+            try {
+                const snap = await get(child(ref(db), 'students'));
+                if (snap.exists()) {
+                    const all = snap.val();
+                    classStudents = Object.values(all).filter(s => s.class === selectedClass);
+                    renderStudents();
+                } else {
+                    studentsGrid.innerHTML = 'هیچ قوتابییەک تۆمار نەکراوە.';
+                }
+            } catch (err) {
+                console.error(err);
+                studentsGrid.innerHTML = 'هەڵە لە هێنانی قوتابیان.';
             }
         });
 
@@ -150,6 +166,11 @@
         // پاشکەوتکردنی غایبات لە داتابەیس (بەبێ ناردن بۆ بەخێوکەر)
         document.getElementById('btn-save-attendance').addEventListener('click', async () => {
             const selectedClass = classSelect.value;
+            if (!selectedClass) {
+                alert('تکایە سەرەتا پۆلێک هەڵبژێرە.');
+                return;
+            }
+            
             const today = new Date().toISOString().split('T')[0];
             
             const absentList = classStudents
@@ -159,7 +180,7 @@
             try {
                 await set(ref(db, `classroom_attendance/${today}/${selectedClass}`), {
                     teacherName: currentTeacher.name,
-                    teacherUsername: currentTeacher.username,
+                    teacherUsername: currentTeacher.username || currentTeacher.name,
                     timestamp: new Date().toLocaleTimeString('en-US'),
                     absentStudents: absentList
                 });
