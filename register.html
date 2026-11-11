@@ -20,10 +20,9 @@
         .top-bar a { color: #8fc7e3; text-decoration: none; margin-inline-start: 14px; }
         .top-bar a:hover { text-decoration: underline; }
         .top-bar .role-tag {
-            background: #2ecc71; color: #0f2740; font-size: 11px; font-weight: bold;
+            background: #f1c40f; color: #0f2740; font-size: 11px; font-weight: bold;
             padding: 2px 8px; border-radius: 10px; margin-left: 6px;
         }
-        .top-bar .role-tag.admin { background: #f1c40f; }
         .top-bar button {
             background: none; border: 1px solid #445; color: #ccc; padding: 4px 12px;
             border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 12px;
@@ -32,7 +31,7 @@
         .page-wrap { padding: 20px; }
 
         .container {
-            max-width: 900px;
+            max-width: 750px;
             margin: 0 auto;
             background: white;
             padding: 25px;
@@ -44,9 +43,6 @@
         input[type="text"], input[type="file"], select {
             width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;
         }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        table, th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
-        th { background-color: #34495e; color: white; }
         button { padding: 6px 12px; border: none; cursor: pointer; border-radius: 4px; margin: 2px; }
         .btn-menu {
             background-color: #34495e; color: white; padding: 10px 20px; font-size: 14px;
@@ -60,33 +56,46 @@
             border-radius: 5px; margin-bottom: 10px; font-size: 14px;
         }
 
+        /* بەشی وێنە و کۆنترۆڵی کامێرا */
         .image-section { text-align: center; margin: 15px 0; background: #fafafa; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
         .img-preview { width: 180px; height: 180px; object-fit: cover; border-radius: 10px; display: none; margin: 10px auto; border: 2px solid #34495e; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
         #webcam { width: 100%; max-width: 380px; border-radius: 10px; margin: 10px auto; display: block; border: 2px solid #34495e; background: #000; }
 
-        /* زوم کۆنتڕۆڵ بە دوگمە و 슬ایدەر */
+        /* کۆنترۆڵەکانی Zoom In / Zoom Out */
         .zoom-controls {
             display: none;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 10px;
             margin: 10px auto;
-            max-width: 350px;
+            max-width: 360px;
             background: #eef2f7;
             padding: 8px 15px;
             border-radius: 20px;
         }
-        .zoom-controls button {
-            background: #34495e; color: white; font-weight: bold; width: 32px; height: 32px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        .zoom-btn {
+            background-color: #2980b9;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            font-size: 16px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
         }
-        .zoom-controls button:hover { background: #2c3e50; }
-        .zoom-controls input[type="range"] { flex: 1; cursor: pointer; margin: 0; }
-        .zoom-value { font-size: 13px; font-weight: bold; width: 45px; text-align: center; color: #34495e; }
+        .zoom-btn:hover { background-color: #1c5980; }
+        .zoom-controls input[type="range"] { flex: 1; cursor: pointer; }
+        .zoom-value { font-size: 13px; font-weight: bold; width: 45px; text-align: center; }
 
         .card-scan-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
         .card-scan-row input#card-id { flex: 1; min-width: 160px; margin: 8px 0; }
         .card-scan-row button { white-space: nowrap; font-size: 13px; padding: 9px 12px; }
         .btn-scan-connect { background: #16a085; color: white; }
+        .btn-scan-connect:hover { background: #128a71; }
         .btn-scan-disconnect { background: #e74c3c; color: white; }
         .scan-status { font-size: 12px; color: #888; margin: -4px 0 10px; }
     </style>
@@ -116,13 +125,13 @@
                     <button type="button" id="btn-scan-connect" class="btn-scan-connect">📡 پەیوەستکردنی کارتخوێن</button>
                     <button type="button" id="btn-scan-disconnect" class="btn-scan-disconnect" style="display:none;">بڕینی پەیوەندی</button>
                 </div>
-                <div class="scan-status" id="scan-status">کارتخوێن پەیوەست نییە</div>
+                <div class="scan-status" id="scan-status">کارتخوێن پەیوەست نییە — دەتوانیت ژمارەی کارت بە دەست بنووسیت یان کارتخوێن پەیوەست بکەیت</div>
                 
                 <input type="text" id="student-name" placeholder="ناوی تەواو" required>
                 
-                <!-- پۆل بە شێوەی datalist بۆ پێدانی پێشنیار و دووبارە نەبوونەوە -->
-                <input type="text" id="student-class" placeholder="پۆل (ناوی پۆل بنووسە یان هەڵیبژێرە)" list="classes-list" required>
-                <datalist id="classes-list"></datalist>
+                <!-- خانەی پۆل لەگەڵ datalist بۆ دروستکردنی لیستی بێ دووبارەبوونەوە -->
+                <input type="text" id="student-class" list="class-list" placeholder="پۆل (هەڵبژێرە یان بنووسە)" required autocomplete="off">
+                <datalist id="class-list"></datalist>
 
                 <div class="image-section">
                     <label style="display:block; font-weight:bold; margin-bottom:6px;">وێنەی قوتابی:</label>
@@ -130,11 +139,11 @@
                     
                     <video id="webcam" autoplay playsinline style="display:none;"></video>
                     
-                    <!-- کۆنتڕۆڵەەکانی زوم ئین و زوم ئاوت (دوگمە + سلايدەر) -->
+                    <!-- کۆنترۆڵی Zoom In / Zoom Out لەگەڵ Slider -->
                     <div class="zoom-controls" id="zoom-container">
-                        <button type="button" id="btn-zoom-out" title="زوم ئاوت">-</button>
+                        <button type="button" class="zoom-btn" id="btn-zoom-out" title="زوم ئاوت">-</button>
                         <input type="range" id="zoom-slider" min="1" max="1" step="0.1" value="1">
-                        <button type="button" id="btn-zoom-in" title="زوم ئین">+</button>
+                        <button type="button" class="zoom-btn" id="btn-zoom-in" title="زوم ئین">+</button>
                         <span class="zoom-value" id="zoom-val">1x</span>
                     </div>
 
@@ -150,33 +159,26 @@
                 <button type="submit" class="btn-save">پاشکەوتکردن / نوێکردنەوە</button>
                 <button type="button" class="btn-cancel-edit" id="btn-cancel-edit">پاشگەزبوونەوە لە دەستکاریکردن</button>
             </form>
-
-            <!-- خشتەی خوارەوە شاردراوەتەوە بە داواکاری ئێوە -->
-            <div style="display:none;">
-                <input type="text" id="student-search" placeholder="گەڕان...">
-                <table>
-                    <tbody id="all-students-table-body"></tbody>
-                </table>
-            </div>
         </div>
     </div>
 
     <script type="module">
         import { app } from "./firebase-config.js";
         import { requireStaffAuth, logout } from "./auth-guard.js";
-        import { getDatabase, ref, set, get, child, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { 
+            getDatabase, ref, set, onValue, remove, update 
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const db = getDatabase(app);
         const staff = await requireStaffAuth({ requireAdmin: true });
+        
         document.getElementById('staff-name-label').innerText = staff.name;
         document.getElementById('btn-logout').addEventListener('click', logout);
 
         let capturedImageBase64 = null;
         let editingCardId = null;
-        let studentsCache = [];
         let webcamStream = null;
         let videoTrack = null;
-        let lastUsedClass = ""; // بۆ هێشتنەوەی نرخی پۆل
 
         const btnCapture = document.getElementById('btn-capture');
         const btnTakePic = document.getElementById('btn-take-pic');
@@ -217,28 +219,29 @@
                 
                 const settings = track.getSettings();
                 zoomSlider.value = settings.zoom || capabilities.zoom.min;
-                updateZoomDisplay(parseFloat(zoomSlider.value));
+                updateZoomDisplay(zoomSlider.value);
+
+                const applyZoom = async (val) => {
+                    const zoomVal = Math.min(Math.max(val, capabilities.zoom.min), capabilities.zoom.max);
+                    zoomSlider.value = zoomVal;
+                    updateZoomDisplay(zoomVal);
+                    try {
+                        await track.applyConstraints({ advanced: [{ zoom: zoomVal }] });
+                    } catch (err) {
+                        console.warn("دەستکاریکردنی زوم سەرکەوتوو نەبوو: ", err);
+                    }
+                };
 
                 zoomSlider.oninput = (e) => applyZoom(parseFloat(e.target.value));
-                btnZoomIn.onclick = () => applyZoom(Math.min(parseFloat(zoomSlider.value) + parseFloat(zoomSlider.step || 0.5), capabilities.zoom.max));
-                btnZoomOut.onclick = () => applyZoom(Math.max(parseFloat(zoomSlider.value) - parseFloat(zoomSlider.step || 0.5), capabilities.zoom.min));
+                btnZoomIn.onclick = () => applyZoom(parseFloat(zoomSlider.value) + (capabilities.zoom.step || 0.1) * 2);
+                btnZoomOut.onclick = () => applyZoom(parseFloat(zoomSlider.value) - (capabilities.zoom.step || 0.1) * 2);
             } else {
                 zoomContainer.style.display = 'none';
             }
         }
 
-        async function applyZoom(val) {
-            zoomSlider.value = val;
-            updateZoomDisplay(val);
-            try {
-                await videoTrack.applyConstraints({ advanced: [{ zoom: val }] });
-            } catch (err) {
-                console.warn("زوم سەرکەوتوو نەبوو", err);
-            }
-        }
-
         function updateZoomDisplay(val) {
-            zoomValDisplay.innerText = val.toFixed(1) + 'x';
+            zoomValDisplay.innerText = parseFloat(val).toFixed(1) + 'x';
         }
 
         function takeSnapshot() {
@@ -270,42 +273,40 @@
             img.style.display = 'block';
         }
 
-        // بارکردنی قوتابیان و پۆلەکان بە بێ دووبارەبوونەوە بۆ داخلکردن لە datalist
+        // بارکردنی پۆلەکان بەبێ دووبارەبوونەوە بۆ datalist
         onValue(ref(db, 'students'), (snapshot) => {
-            studentsCache = [];
-            const uniqueClasses = new Set();
+            const classSet = new Set();
             if (snapshot.exists()) {
                 const data = snapshot.val();
-                Object.keys(data).forEach(id => {
-                    const st = { cardId: id, ...data[id] };
-                    studentsCache.push(st);
-                    if (st.class) uniqueClasses.add(st.class.trim());
+                Object.values(data).forEach(st => {
+                    if (st.class && st.class.trim() !== '') {
+                        classSet.add(st.class.trim());
+                    }
                 });
             }
-            
-            const datalist = document.getElementById('classes-list');
+            populateClassDatalist(Array.from(classSet));
+        });
+
+        function populateClassDatalist(classList) {
+            const datalist = document.getElementById('class-list');
             datalist.innerHTML = '';
-            uniqueClasses.forEach(cls => {
+            classList.sort().forEach(cls => {
                 const option = document.createElement('option');
                 option.value = cls;
                 datalist.appendChild(option);
             });
-        });
+        }
 
-        function resetForm() {
+        // بەتاڵکردنەوەی فۆرمەکە بەبێ سڕینەوەی خانەی پۆل
+        function resetFormKeepClass() {
+            const currentClass = document.getElementById('student-class').value; // هەڵگرتنی بەهای پۆل
             editingCardId = null;
             
-            // پاراستنی خانەی پۆل ئەگەر پێویست بکات، لێرەدا پۆلی پێشوو دەگەڕێندرێتەوە ئەگەر بەتاڵ نەکرابێت
-            const currentClassVal = document.getElementById('student-class').value;
-            if(currentClassVal) lastUsedClass = currentClassVal;
-
-            document.getElementById('student-form').reset();
+            document.getElementById('card-id').value = '';
+            document.getElementById('student-name').value = '';
+            document.getElementById('student-file').value = '';
             
-            // گەڕاندنەوەی پۆل بۆ خانەکە تا خۆت نەسڕیتەوە
-            if(lastUsedClass) {
-                document.getElementById('student-class').value = lastUsedClass;
-            }
-
+            document.getElementById('student-class').value = currentClass; // گەڕاندنەوەی پۆلەکە
             document.getElementById('card-id').disabled = false;
             document.getElementById('edit-banner').style.display = 'none';
             document.getElementById('btn-cancel-edit').style.display = 'none';
@@ -314,21 +315,16 @@
             stopWebcam();
         }
 
-        document.getElementById('btn-cancel-edit').addEventListener('click', () => {
-            lastUsedClass = "";
-            resetForm();
-        });
+        document.getElementById('btn-cancel-edit').addEventListener('click', resetFormKeepClass);
 
+        // پاشکەوتکردنی زانیاری قوتابی
         document.getElementById('student-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const cardId = document.getElementById('card-id').value.trim();
             const name = document.getElementById('student-name').value.trim();
             const cls = document.getElementById('student-class').value.trim();
-            
-            // هەڵگرتنی پۆل لە بیرگەدا بۆ ئەوەی لە فۆرمی داهاتوودا بمێنێت
-            lastUsedClass = cls;
-
             const fileInput = document.getElementById('student-file');
+
             let photoData = capturedImageBase64;
 
             if (!photoData && fileInput.files.length > 0) {
@@ -339,7 +335,11 @@
                 });
             }
 
-            const updates = { name: name, class: cls };
+            const updates = {
+                name: name,
+                class: cls
+            };
+
             if (photoData) updates.photo = photoData;
 
             if (editingCardId) {
@@ -349,7 +349,7 @@
                 await set(ref(db, `students/${cardId}`), updates);
             }
 
-            resetForm();
+            resetFormKeepClass();
             alert("بە سەرکەوتوویی تۆمارکرا!");
         });
     </script>
