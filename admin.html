@@ -263,6 +263,11 @@
 
                 <hr style="margin: 20px 0;">
 
+                <h3>👩‍🏫 لیستی مامۆستایانی تۆمارکراو</h3>
+                <div id="teachers-list-container" style="margin-bottom: 20px;">چاوەڕوانبە...</div>
+
+                <hr style="margin: 20px 0;">
+
                 <h3>📋 غایباتی ناو پۆلەکان (کە لەلایەن مامۆستایانەوە نێردراون)</h3>
                 <div id="classroom-reports-list">چاوەڕوانبە...</div>
             </div>
@@ -331,6 +336,7 @@
         });
         document.getElementById('btn-open-teachers').addEventListener('click', () => {
             openModal('teachers-modal');
+            loadTeachersList();
             loadClassroomReports();
         });
 
@@ -859,8 +865,68 @@
                 });
                 alert(`ئەکاونتی مامۆستا (${name}) بە سەرکەوتوویی دروستکرا!`);
                 document.getElementById('teacher-create-form').reset();
+                loadTeachersList(); // نوێکردنەوەی لیستی مامۆستایان
             } catch (err) {
                 alert('هەڵە لە دروستکردنی مامۆستا: ' + err.message);
+            }
+        });
+
+        // هێنان و نیشاندانی لیستی مامۆستایان لە مۆداڵدا
+        async function loadTeachersList() {
+            const container = document.getElementById('teachers-list-container');
+            container.innerHTML = 'چاوەڕوانبە...';
+
+            try {
+                const snap = await get(child(ref(db), 'staff'));
+                if (!snap.exists()) {
+                    container.innerHTML = '<p>هیچ ستاف یان مامۆستایەک نییە.</p>';
+                    return;
+                }
+
+                const staffData = snap.val();
+                let html = '<ul style="margin:0; padding:0;">';
+                let foundTeacher = false;
+
+                Object.keys(staffData).forEach(uid => {
+                    const member = staffData[uid];
+                    // تەنها ئەوانەی مامۆستان نیشان دەدەین یان هەموو ستافەکان
+                    if (member.role === 'teacher') {
+                        foundTeacher = true;
+                        html += `
+                            <li style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; margin-bottom: 5px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px;">
+                                <span><b>ناوی مامۆستا:</b> ${member.name} | <b>ناوی بەکارهێنەر:</b> ${member.username || uid}</span>
+                                <button class="btn-delete" data-teacher="${uid}" style="padding: 4px 8px; font-size: 12px;">سڕینەوە</button>
+                            </li>
+                        `;
+                    }
+                });
+
+                html += '</ul>';
+                if (!foundTeacher) {
+                    container.innerHTML = '<p style="color: #777;">هیچ مامۆستایەک تا ئێستا دروست نەکراوە.</p>';
+                } else {
+                    container.innerHTML = html;
+                }
+            } catch (err) {
+                container.innerHTML = '<p style="color: red;">هەڵە لە هێنانی لیستی مامۆستایان.</p>';
+                console.error(err);
+            }
+        }
+
+        // سڕینەوەی مامۆستا
+        document.getElementById('teachers-list-container').addEventListener('click', async (e) => {
+            const btn = e.target.closest('button[data-teacher]');
+            if (!btn) return;
+            const uid = btn.dataset.teacher;
+            
+            if (!confirm('دڵنیای لە سڕینەوەی ئەم مامۆستایە؟')) return;
+
+            try {
+                await remove(ref(db, `staff/${uid}`));
+                alert('مامۆستاکە سڕایەوە.');
+                loadTeachersList();
+            } catch (err) {
+                alert('هەڵە لە سڕینەوە: ' + err.message);
             }
         });
 
