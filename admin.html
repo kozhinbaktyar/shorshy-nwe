@@ -843,7 +843,7 @@
             }
         }
 
-        // بەڕێوەبردنی دروستکردنی مامۆستا و نیشاندانی غایباتی پۆلەکان لە admin.html
+        // بەڕێوەبردنی دروستکردنی مامۆستا و پاشکەوتکردنی ڕاستەوخۆ لەسەر خشتەی staff
         document.getElementById('teacher-create-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('new-teacher-name').value.trim();
@@ -851,8 +851,13 @@
             const password = document.getElementById('new-teacher-pass').value.trim();
 
             try {
-                await set(ref(db, `teachers/${username}`), { name, username, password });
-                alert(`ئەکاونتی مامۆستا (${name}) دروستکرا!`);
+                await set(ref(db, `staff/${username}`), {
+                    name: name,
+                    username: username,
+                    password: password,
+                    role: 'teacher'
+                });
+                alert(`ئەکاونتی مامۆستا (${name}) بە سەرکەوتوویی دروستکرا!`);
                 document.getElementById('teacher-create-form').reset();
             } catch (err) {
                 alert('هەڵە لە دروستکردنی مامۆستا: ' + err.message);
