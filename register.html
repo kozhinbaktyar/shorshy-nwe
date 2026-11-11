@@ -59,7 +59,6 @@
         .image-section { text-align: center; margin: 15px 0; background: #fafafa; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
         .img-preview { width: 180px; height: 180px; object-fit: cover; border-radius: 10px; display: none; margin: 10px auto; border: 2px solid #34495e; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
         
-        /* ویدیۆی کامێرا بە overflow hidden بۆ ئەوەی کاتی زومکردن دەرنەچێت */
         .video-wrapper {
             width: 100%; max-width: 380px; height: 280px; margin: 10px auto;
             border-radius: 10px; overflow: hidden; border: 2px solid #34495e; background: #000;
@@ -67,7 +66,6 @@
         }
         #webcam { width: 100%; height: 100%; object-fit: cover; transform-origin: center center; }
 
-        /* کۆنترۆڵی Zoom In / Zoom Out */
         .zoom-controls {
             display: none;
             align-items: center;
@@ -80,18 +78,9 @@
             border-radius: 20px;
         }
         .zoom-btn {
-            background-color: #2980b9;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
-            font-size: 16px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
+            background-color: #2980b9; color: white; border: none; border-radius: 50%;
+            width: 32px; height: 32px; font-size: 16px; font-weight: bold;
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
         }
         .zoom-btn:hover { background-color: #1c5980; }
         .zoom-controls input[type="range"] { flex: 1; cursor: pointer; }
@@ -101,8 +90,11 @@
         .card-scan-row input#card-id { flex: 1; min-width: 160px; margin: 8px 0; }
         .card-scan-row button { white-space: nowrap; font-size: 13px; padding: 9px 12px; }
         .btn-scan-connect { background: #16a085; color: white; }
+        .btn-scan-connect:hover { background: #128a71; }
         .btn-scan-disconnect { background: #e74c3c; color: white; }
         .scan-status { font-size: 12px; color: #888; margin: -4px 0 10px; }
+        .scan-status.connected { color: #16a085; font-weight: bold; }
+        #card-id.just-scanned { border-color: #16a085; background: #eafaf3; }
     </style>
 </head>
 <body>
@@ -145,7 +137,6 @@
                         <video id="webcam" autoplay playsinline></video>
                     </div>
                     
-                    <!-- کۆنترۆڵی Zoom In / Zoom Out کە هەمیشە کارا دەبێت -->
                     <div class="zoom-controls" id="zoom-container">
                         <button type="button" class="zoom-btn" id="btn-zoom-out" title="زوم ئاوت">-</button>
                         <input type="range" id="zoom-slider" min="1" max="3" step="0.1" value="1">
@@ -185,6 +176,85 @@
         let editingCardId = null;
         let webcamStream = null;
 
+        // بەشی کۆنترۆڵی کارتخوێن (RFID Serial Port)
+        let serialPort = null;
+        let serialReader = null;
+        let isReadingSerial = false;
+
+        const btnConnect = document.getElementById('btn-scan-connect');
+        const btnDisconnect = document.getElementById('btn-scan-disconnect');
+        const scanStatus = document.getElementById('scan-status');
+        const cardIdInput = document.getElementById('card-id');
+
+        btnConnect.addEventListener('click', async () => {
+            if (!("serial" in navigator)) {
+                alert("وێبگەڕەکەت پشتگیری لە بەستەرەوەی پۆرتی سریال (Web Serial API) ناکات. تکایە لە Google Chrome یان Edge بەکاری بهێنە.");
+                return;
+            }
+            try {
+                serialPort = await navigator.serial.requestPort();
+                await serialPort.open({ baudRate: 9600 });
+                
+                btnConnect.style.display = 'none';
+                btnDisconnect.style.display = 'inline-block';
+                scanStatus.innerText = 'کارتخوێن بە سەرکەوتوویی پەیوەست بوو — کارتەکە نزیک بکەوە';
+                scanStatus.className = 'scan-status connected';
+
+                isReadingSerial = true;
+                readSerialData();
+            } catch (err) {
+                console.error("هەڵە لە پەیوەستکردنی پۆرت:", err);
+                alert("نەتوانرا پەیوەست بە کارتخوێن بکرێت: " + err.message);
+            }
+        });
+
+        btnDisconnect.addEventListener('click', async () => {
+            isReadingSerial = false;
+            if (serialReader) {
+                await serialReader.cancel();
+                serialReader = null;
+            }
+            if (serialPort) {
+                await serialPort.close();
+                serialPort = null;
+            }
+            btnConnect.style.display = 'inline-block';
+            btnDisconnect.style.display = 'none';
+            scanStatus.innerText = 'کارتخوێن پەیوەست نییە — دەتوانیت ژمارەی کارت بە دەست بنووسیت یان کارتخوێن پەیوەست بکەیت';
+            scanStatus.className = 'scan-status';
+        });
+
+        async function readSerialData() {
+            const textDecoder = new TextDecoderStream();
+            const readableStreamClosed = serialPort.readable.pipeTo(textDecoder.writable);
+            serialReader = textDecoder.readable.getReader();
+
+            try {
+                let buffer = "";
+                while (isReadingSerial) {
+                    const { value, done } = await serialReader.read();
+                    if (done) break;
+                    if (value) {
+                        buffer += value;
+                        if (buffer.includes("\n") || buffer.includes("\r")) {
+                            let cardId = buffer.trim();
+                            if (cardId.length > 0) {
+                                cardIdInput.value = cardId;
+                                cardIdInput.classList.add('just-scanned');
+                                setTimeout(() => cardIdInput.classList.remove('just-scanned'), 1500);
+                            }
+                            buffer = "";
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log("پەیوەندی پۆرت پچڕا:", error);
+            } finally {
+                if (serialReader) serialReader.releaseLock();
+            }
+        }
+
+        // بەشی کامێرا و زوم
         const btnCapture = document.getElementById('btn-capture');
         const btnTakePic = document.getElementById('btn-take-pic');
         const videoWrapper = document.getElementById('video-wrapper');
@@ -200,7 +270,7 @@
 
         async function startWebcam() {
             btnTakePic.style.display = 'inline-block';
-            zoomContainer.style.display = 'flex'; // نیشاندانی بەشی زوم کاتێک کامێرا دەکەوێتە کار
+            zoomContainer.style.display = 'flex';
             videoWrapper.style.display = 'block';
             try {
                 webcamStream = await navigator.mediaDevices.getUserMedia({ 
@@ -212,7 +282,6 @@
             }
         }
 
-        // کۆنترۆڵکردنی زوم (هەم فیزیکی و هەم دیجیتاڵی بە پێوەری CSS Scale)
         function updateZoom(val) {
             let zoomVal = parseFloat(val);
             if (zoomVal < 1) zoomVal = 1;
@@ -254,7 +323,7 @@
             videoWrapper.style.display = 'none';
             btnTakePic.style.display = 'none';
             zoomContainer.style.display = 'none';
-            updateZoom(1); // گەڕانەوەی زوم بۆ باری ئاسایی
+            updateZoom(1);
         }
 
         function showPreview(src) {
