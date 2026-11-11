@@ -84,7 +84,7 @@
         .status-red { background-color: #c0392b !important; color: white; }
         .status-leave { background-color: #f1c40f !important; color: black; }
 
-        input[type="text"], input[type="file"], select {
+        input[type="text"], input[type="file"], input[type="password"], select {
             width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;
         }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
@@ -118,7 +118,6 @@
         .close-btn:hover { color: #000; }
         @keyframes fadeIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-        /* گەورەکردن و ڕێکخستنی قەبارەی وێنە و کامێرا لە بەشی تۆمارکردن */
         .image-section { text-align: center; margin: 15px 0; }
         .img-preview { width: 180px; height: 180px; object-fit: cover; border-radius: 10px; display: none; margin: 10px auto; border: 2px solid #34495e; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
         #webcam { width: 100%; max-width: 320px; border-radius: 10px; margin: 10px auto; display: block; border: 2px solid #34495e; }
@@ -164,6 +163,7 @@
         <div class="menu-buttons">
             <button class="btn-menu" id="btn-open-register">➕ تۆمارکردنی قوتابی نوێ</button>
             <button class="btn-menu" id="btn-open-reports">📊 ڕاپۆرتی مانگانە و بەخێوکەران</button>
+            <button class="btn-menu" id="btn-open-teachers" style="background-color: #8e44ad;">👩‍🏫 بەڕێوەبردنی مامۆستایان</button>
         </div>
 
         <hr>
@@ -211,7 +211,6 @@
                         <canvas id="canvas" style="display:none;"></canvas>
                         
                         <br>
-                        <!-- وێنەی پێشبینیکراو (گەورەکراو) -->
                         <img id="img-preview" class="img-preview" alt="وێنەی قوتابی">
                     </div>
                     <button type="submit" class="btn-save">پاشکەوتکردن / نوێکردنەوە</button>
@@ -246,6 +245,26 @@
                 <h3>دۆخی جۆینبوونی بەخێوکەران</h3>
                 <p style="font-size:13px; color:#777;">تێبینی: ئەم دۆخە بەدەستی لەلایەن بەڕێوبەرەوە دەگۆڕدرێت (هێشتا سیستەمی جۆینبوونی ئۆتۆماتیکی نییە).</p>
                 <ul id="parents-status-list"></ul>
+            </div>
+        </div>
+
+        <!-- ===== Modal: بەڕێوەبردنی مامۆستا و غایباتی پۆلەکان ===== -->
+        <div id="teachers-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-btn" data-close="teachers-modal">&times;</span>
+
+                <h3>دروستکردنی ئەکاونتی مامۆستا</h3>
+                <form id="teacher-create-form">
+                    <input type="text" id="new-teacher-name" placeholder="ناوی تەواوی مامۆستا" required>
+                    <input type="text" id="new-teacher-user" placeholder="ناوی بەکارهێنەر (Username)" required>
+                    <input type="password" id="new-teacher-pass" placeholder="پاسۆرد" required>
+                    <button type="submit" class="btn-save">تۆمارکردنی مامۆستا</button>
+                </form>
+
+                <hr style="margin: 20px 0;">
+
+                <h3>📋 غایباتی ناو پۆلەکان (کە لەلایەن مامۆستایانەوە نێردراون)</h3>
+                <div id="classroom-reports-list">چاوەڕوانبە...</div>
             </div>
         </div>
     </div>
@@ -309,6 +328,10 @@
         document.getElementById('btn-open-reports').addEventListener('click', () => {
             openModal('reports-modal');
             loadMonthlyReport();
+        });
+        document.getElementById('btn-open-teachers').addEventListener('click', () => {
+            openModal('teachers-modal');
+            loadClassroomReports();
         });
 
         let webcamStream = null;
@@ -818,6 +841,59 @@
                 console.error(err);
                 alert("هەڵە لە هێنانی ڕاپۆرتی مانگانە: " + err.message);
             }
+        }
+
+        // بەڕێوەبردنی دروستکردنی مامۆستا و نیشاندانی غایباتی پۆلەکان لە admin.html
+        document.getElementById('teacher-create-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('new-teacher-name').value.trim();
+            const username = document.getElementById('new-teacher-user').value.trim().toLowerCase();
+            const password = document.getElementById('new-teacher-pass').value.trim();
+
+            try {
+                await set(ref(db, `teachers/${username}`), { name, username, password });
+                alert(`ئەکاونتی مامۆستا (${name}) دروستکرا!`);
+                document.getElementById('teacher-create-form').reset();
+            } catch (err) {
+                alert('هەڵە لە دروستکردنی مامۆستا: ' + err.message);
+            }
+        });
+
+        async function loadClassroomReports() {
+            const container = document.getElementById('classroom-reports-list');
+            container.innerHTML = 'چاوەڕوانبە...';
+            
+            const today = getTodayStr();
+            const snap = await get(child(ref(db), `classroom_attendance/${today}`));
+
+            if (!snap.exists()) {
+                container.innerHTML = '<p>ئەمڕۆ هیچ غایباتێکی ناو پۆل لەلایەن مامۆستایانەوە تۆمار نەکراوە.</p>';
+                return;
+            }
+
+            const data = snap.val();
+            let html = '';
+
+            Object.keys(data).forEach(className => {
+                const report = data[className];
+                html += `
+                    <div style="background:#f8f9fa; border:1px solid #ddd; padding:12px; border-radius:6px; margin-bottom:10px;">
+                        <h4 style="margin:0 0 5px 0; color:#2c3e50;">پۆل: ${className}</h4>
+                        <p style="margin:2px 0; font-size:13px; color:#555;">مامۆستای بەرپرس: <b>${report.teacherName}</b> (${report.timestamp})</p>
+                        <div style="margin-top:8px;">
+                            <b>قوتابییە غایبەکان:</b>
+                            ${report.absentStudents && report.absentStudents.length > 0 
+                                ? `<ul style="margin:5px 0; padding-right:20px; color:#c0392b;">` + 
+                                   report.absentStudents.map(s => `<li>${s.name}</li>`).join('') + 
+                                  `</ul>`
+                                : '<span style="color:#27ae60;"> هەموو قوتابیان ئامادەبوون.</span>'
+                            }
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
         }
     </script>
 </body>
