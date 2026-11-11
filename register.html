@@ -32,7 +32,7 @@
         .page-wrap { padding: 20px; }
 
         .container {
-            max-width: 900px;
+            max-width: 700px;
             margin: 0 auto;
             background: white;
             padding: 25px;
@@ -44,9 +44,6 @@
         input[type="text"], input[type="file"], select {
             width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;
         }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        table, th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
-        th { background-color: #34495e; color: white; }
         button { padding: 6px 12px; border: none; cursor: pointer; border-radius: 4px; margin: 2px; }
         .btn-menu {
             background-color: #34495e; color: white; padding: 10px 20px; font-size: 14px;
@@ -54,66 +51,38 @@
         }
         .btn-save { background: #27ae60; color: white; width: 100%; padding: 12px; font-size: 16px; margin-top: 15px; }
         .btn-cancel-edit { background: #95a5a6; color: white; width: 100%; padding: 10px; font-size: 14px; margin-top: 6px; display: none; }
-        .btn-edit { background: #2980b9; color: white; }
-        .btn-delete { background: #c0392b; color: white; }
 
         .edit-banner {
             display: none; background: #fff3cd; color: #7a5c00; padding: 8px 12px;
             border-radius: 5px; margin-bottom: 10px; font-size: 14px;
         }
 
+        /* بەشی وێنە و کامێرا */
         .image-section { text-align: center; margin: 15px 0; background: #fafafa; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
-        .img-preview { width: 180px; height: 180px; object-fit: cover; border-radius: 10px; display: none; margin: 10px auto; border: 2px solid #34495e; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
-        
-        .webcam-container {
-            position: relative;
-            width: 100%;
-            max-width: 380px;
-            height: 285px;
-            margin: 10px auto;
-            overflow: hidden;
-            border-radius: 10px;
-            border: 2px solid #34495e;
-            background: #000;
-            display: none;
-        }
+        .img-preview { width: 140px; height: 140px; object-fit: cover; border-radius: 10px; display: none; margin: 10px auto; border: 2px solid #27ae60; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+        #webcam { width: 100%; max-width: 420px; border-radius: 10px; margin: 0 auto; display: block; border: 2px solid #34495e; background: #000; }
 
-        #webcam {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transform-origin: center center;
-            transition: transform 0.1s ease;
-        }
-
-        /* بەشی دوگمەکانی Zoom In / Zoom Out */
+        /* زوم کۆنتڕۆڵ */
         .zoom-controls {
             display: none;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 8px;
             margin: 10px auto;
-            max-width: 340px;
+            max-width: 360px;
             background: #eef2f7;
             padding: 8px 15px;
             border-radius: 20px;
         }
-        .btn-zoom {
-            background-color: #2980b9;
-            color: white;
-            font-weight: bold;
-            font-size: 16px;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-            line-height: 1;
+        .zoom-controls label { font-size: 13px; font-weight: bold; color: #34495e; }
+        .zoom-controls input[type="range"] { flex: 1; cursor: pointer; }
+        .zoom-btn {
+            background: #34495e; color: white; border: none; width: 28px; height: 28px;
+            border-radius: 50%; font-weight: bold; cursor: pointer; display: flex;
+            align-items: center; justify-content: center; line-height: 1;
         }
-        .btn-zoom:hover { background-color: #1c5980; }
-        .zoom-value { font-size: 13px; font-weight: bold; width: 45px; text-align: center; }
+        .zoom-btn:hover { background: #16324f; }
+        .zoom-value { font-size: 13px; font-weight: bold; width: 40px; text-align: center; }
 
         .card-scan-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
         .card-scan-row input#card-id { flex: 1; min-width: 160px; margin: 8px 0; }
@@ -122,6 +91,11 @@
         .btn-scan-connect:hover { background: #128a71; }
         .btn-scan-disconnect { background: #e74c3c; color: white; }
         .scan-status { font-size: 12px; color: #888; margin: -4px 0 10px; }
+        .scan-status.connected { color: #16a085; font-weight: bold; }
+        .scan-status.scanned { color: #2980b9; font-weight: bold; }
+        
+        /* شاردنەوەی لیستی قوتابیان لە خوارەوە */
+        .hidden-list-section { display: none !important; }
     </style>
 </head>
 <body>
@@ -145,7 +119,7 @@
             
             <form id="student-form">
                 <div class="card-scan-row">
-                    <input type="text" id="card-id" placeholder="ژمارەی کارت (RFID)" required autocomplete="off">
+                    <input type="text" id="card-id" placeholder="ژمارەی کارت (RFID)" required autofocus>
                     <button type="button" id="btn-scan-connect" class="btn-scan-connect">📡 پەیوەستکردنی کارتخوێن</button>
                     <button type="button" id="btn-scan-disconnect" class="btn-scan-disconnect" style="display:none;">بڕینی پەیوەندی</button>
                 </div>
@@ -153,48 +127,51 @@
                 
                 <input type="text" id="student-name" placeholder="ناوی تەواو" required>
                 
-                <!-- خانەی پۆل بە Datalist بۆ دروستبوونی لیستی پۆلەکان بەبێ دووبارەبوونەوە -->
-                <input type="text" id="student-class" list="classes-list" placeholder="پۆل (نموونە: 10/A)" required>
+                <!-- خانەی پۆل لەگەڵ datalist بۆ لێدانی پێشنیازی پۆلەکان بەبێ دووبارەبوونەوە -->
+                <input type="text" id="student-class" list="classes-list" placeholder="پۆل (تایپ بکە یان هەڵیبژێره)" required autocomplete="off">
                 <datalist id="classes-list"></datalist>
 
                 <div class="image-section">
-                    <label style="display:block; font-weight:bold; margin-bottom:6px;">وێنەی قوتابی:</label>
-                    <input type="file" id="student-file" accept="image/*">
+                    <label style="display:block; font-weight:bold; margin-bottom:8px;">کامێرا (بە بەردەوامی کراوەیە):</label>
                     
-                    <div class="webcam-container" id="webcam-container">
-                        <video id="webcam" autoplay playsinline></video>
-                    </div>
+                    <video id="webcam" autoplay playsinline></video>
                     
-                    <!-- دوگمەکانی Zoom In / Zoom Out -->
+                    <!-- کۆنترۆڵەکانی زوم (زوم ئین / زوم ئاوت / سلایدەر) -->
                     <div class="zoom-controls" id="zoom-container">
-                        <button type="button" class="btn-zoom" id="btn-zoom-out" title="زوم ئاوت">-</button>
-                        <span class="zoom-value" id="zoom-val">1.0x</span>
-                        <button type="button" class="btn-zoom" id="btn-zoom-in" title="زوم ئین">+</button>
+                        <label>🔍 زوم:</label>
+                        <button type="button" class="zoom-btn" id="btn-zoom-out">-</button>
+                        <input type="range" id="zoom-slider" min="1" max="1" step="0.1" value="1">
+                        <button type="button" class="zoom-btn" id="btn-zoom-in">+</button>
+                        <span class="zoom-value" id="zoom-val">1x</span>
                     </div>
 
-                    <div style="margin-top: 8px;">
-                        <button type="button" id="btn-capture" class="btn-menu">کردنەوەی کامێرا</button>
-                        <button type="button" id="btn-take-pic" class="btn-menu" style="background-color: #27ae60; display:none;">گرتنی وێنە</button>
+                    <div style="margin-top: 12px;">
+                        <button type="button" id="btn-take-pic" class="btn-menu" style="background-color: #27ae60; font-size:16px; padding:10px 24px;">📸 گرتنی وێنە</button>
+                        <input type="file" id="student-file" accept="image/*" style="margin-top: 10px;">
                     </div>
+                    
                     <canvas id="canvas" style="display:none;"></canvas>
                     
-                    <img id="img-preview" class="img-preview" alt="وێنەی پێشبینیکراو">
+                    <div style="margin-top:10px;">
+                        <img id="img-preview" class="img-preview" alt="وێنەی گیراوە">
+                    </div>
                 </div>
 
                 <button type="submit" class="btn-save">پاشکەوتکردن / نوێکردنەوە</button>
                 <button type="button" class="btn-cancel-edit" id="btn-cancel-edit">پاشگەزبوونەوە لە دەستکاریکردن</button>
             </form>
 
-            <hr style="margin: 30px 0;">
-
-            <h3>لیستی گشتی قوتابییان بۆ دەستکاریکردن یان سڕینەوە</h3>
-            <input type="text" id="student-search" placeholder="گەڕان بە ناو، پۆل یان ژمارەی کارت...">
-            <table>
-                <thead>
-                    <tr><th>کارت</th><th>ناو</th><th>پۆل</th><th>کردارەکان</th></tr>
-                </thead>
-                <tbody id="all-students-table-body"></tbody>
-            </table>
+            <!-- لیستی گشتی شێردراوە (دەتوانیت باسی بکەیتەوە ئەگەر ویستت) -->
+            <div class="hidden-list-section">
+                <h3>لیستی گشتی قوتابییان</h3>
+                <input type="text" id="student-search" placeholder="گەڕان...">
+                <table>
+                    <thead>
+                        <tr><th>کارت</th><th>ناو</th><th>پۆل</th><th>کردارەکان</th></tr>
+                    </thead>
+                    <tbody id="all-students-table-body"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -202,7 +179,7 @@
         import { app } from "./firebase-config.js";
         import { requireStaffAuth, logout } from "./auth-guard.js";
         import { 
-            getDatabase, ref, set, onValue, remove, update 
+            getDatabase, ref, set, get, child, onValue, remove, update 
         } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const db = getDatabase(app);
@@ -219,106 +196,95 @@
         let studentsCache = [];
         let webcamStream = null;
         let videoTrack = null;
-        let currentZoomLevel = 1.0;
 
-        // کلاک بۆ زومکردن
-        const btnCapture = document.getElementById('btn-capture');
         const btnTakePic = document.getElementById('btn-take-pic');
-        const webcamContainer = document.getElementById('webcam-container');
-        const video = document.getElementById('webcam');
         const zoomContainer = document.getElementById('zoom-container');
+        const zoomSlider = document.getElementById('zoom-slider');
         const zoomValDisplay = document.getElementById('zoom-val');
         const btnZoomIn = document.getElementById('btn-zoom-in');
         const btnZoomOut = document.getElementById('btn-zoom-out');
 
-        btnCapture.addEventListener('click', startWebcam);
         btnTakePic.addEventListener('click', takeSnapshot);
 
+        // دەستپێکردنی ڕاستەوخۆی کامێرا کاتێک پەڕەکە دەکرێتەوە
+        window.addEventListener('DOMContentLoaded', () => {
+            startWebcam();
+        });
+
         async function startWebcam() {
-            btnTakePic.style.display = 'inline-block';
+            const video = document.getElementById('webcam');
             try {
                 webcamStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { width: { ideal: 1280 }, height: { ideal: 720 } } 
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "environment" } 
                 });
                 video.srcObject = webcamStream;
-                webcamContainer.style.display = 'block';
-                zoomContainer.style.display = 'flex';
 
                 videoTrack = webcamStream.getVideoTracks()[0];
-                currentZoomLevel = 1.0;
-                applyZoom(currentZoomLevel);
+                setupCameraCapabilities(videoTrack);
             } catch (e) {
-                alert("نەتوانرا کامێرا بکرێتەوە: " + e.message);
+                console.warn("کامێرا نەکرایەوە: " + e.message);
             }
         }
 
-        // کۆنتڕۆڵی Zoom In و Zoom Out (هەم Hardware پێشکەوتوو هەم Digital Transform CSS)
-        btnZoomIn.addEventListener('click', () => {
-            if (currentZoomLevel < 3.0) {
-                currentZoomLevel = parseFloat((currentZoomLevel + 0.2).toFixed(1));
-                applyZoom(currentZoomLevel);
-            }
-        });
-
-        btnZoomOut.addEventListener('click', () => {
-            if (currentZoomLevel > 1.0) {
-                currentZoomLevel = parseFloat((currentZoomLevel - 0.2).toFixed(1));
-                applyZoom(currentZoomLevel);
-            }
-        });
-
-        async function applyZoom(zoomVal) {
-            zoomValDisplay.innerText = zoomVal.toFixed(1) + 'x';
+        function setupCameraCapabilities(track) {
+            const capabilities = track.getCapabilities ? track.getCapabilities() : {};
             
-            // 1. ئەگەر کامێرای ئامێرەکە خۆی پەیڕەوی Hardware Zoom بکات
-            if (videoTrack && videoTrack.getCapabilities) {
-                const capabilities = videoTrack.getCapabilities();
-                if ('zoom' in capabilities) {
-                    try {
-                        const targetZoom = Math.min(Math.max(zoomVal, capabilities.zoom.min), capabilities.zoom.max);
-                        await videoTrack.applyConstraints({ advanced: [{ zoom: targetZoom }] });
-                    } catch (e) {
-                        console.warn("Hardware zoom error:", e);
-                    }
+            if ('zoom' in capabilities) {
+                zoomContainer.style.display = 'flex';
+                zoomSlider.min = capabilities.zoom.min;
+                zoomSlider.max = capabilities.zoom.max;
+                zoomSlider.step = capabilities.zoom.step || 0.1;
+                
+                const settings = track.getSettings();
+                zoomSlider.value = settings.zoom || capabilities.zoom.min;
+                updateZoomDisplay(zoomSlider.value);
+
+                zoomSlider.oninput = (e) => applyZoom(parseFloat(e.target.value));
+                
+                btnZoomIn.onclick = () => {
+                    let curr = parseFloat(zoomSlider.value);
+                    let step = parseFloat(zoomSlider.step) || 0.2;
+                    let next = Math.min(curr + step, parseFloat(zoomSlider.max));
+                    applyZoom(next);
+                };
+
+                btnZoomOut.onclick = () => {
+                    let curr = parseFloat(zoomSlider.value);
+                    let step = parseFloat(zoomSlider.step) || 0.2;
+                    let next = Math.max(curr - step, parseFloat(zoomSlider.min));
+                    applyZoom(next);
+                };
+            } else {
+                zoomContainer.style.display = 'none';
+            }
+        }
+
+        async function applyZoom(val) {
+            zoomSlider.value = val;
+            updateZoomDisplay(val);
+            if (videoTrack) {
+                try {
+                    await videoTrack.applyConstraints({ advanced: [{ zoom: val }] });
+                } catch (err) {
+                    console.warn("هەڵە لە زومکردن: ", err);
                 }
             }
+        }
 
-            // 2. بەکارهێنانی Digital Zoom (CSS Transform) بۆ پشتڕاستکردنەوە لە هەموو کامێرایەکدا
-            video.style.transform = `scale(${zoomVal})`;
+        function updateZoomDisplay(val) {
+            zoomValDisplay.innerText = parseFloat(val).toFixed(1) + 'x';
         }
 
         function takeSnapshot() {
+            const video = document.getElementById('webcam');
             const canvas = document.getElementById('canvas');
             const ctx = canvas.getContext('2d');
-            
-            // هەژمارکردنی قەبارە بەپێی زومکردنەکە بۆ سڕینەوەی کەنارەکانی درەنگکەوتوو
-            const vWidth = video.videoWidth;
-            const vHeight = video.videoHeight;
-            
-            canvas.width = vWidth;
-            canvas.height = vHeight;
-
-            const cropWidth = vWidth / currentZoomLevel;
-            const cropHeight = vHeight / currentZoomLevel;
-            const startX = (vWidth - cropWidth) / 2;
-            const startY = (vHeight - cropHeight) / 2;
-
-            ctx.drawImage(video, startX, startY, cropWidth, cropHeight, 0, 0, vWidth, vHeight);
-            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
             capturedImageBase64 = canvas.toDataURL('image/jpeg');
             showPreview(capturedImageBase64);
-            stopWebcam();
-        }
-
-        function stopWebcam() {
-            if (webcamStream) {
-                webcamStream.getTracks().forEach(t => t.stop());
-                webcamStream = null;
-                videoTrack = null;
-            }
-            webcamContainer.style.display = 'none';
-            btnTakePic.style.display = 'none';
-            zoomContainer.style.display = 'none';
+            // کامێراکە ناوەستێنرێت تا هەمیشە ئامادە بێت بۆ قوتابی دواتر
         }
 
         function showPreview(src) {
@@ -327,102 +293,54 @@
             img.style.display = 'block';
         }
 
-        // بارکردنی قوتابیان و دروستکردنی لیستی پۆلەکان بەبێ دووبارەبوونەوە
+        // وەرگرتنی داتای قوتابیان و دروستکردنی لیستی پۆلەکان (بێ دووبارەبوونەوە)
         onValue(ref(db, 'students'), (snapshot) => {
             studentsCache = [];
-            const uniqueClasses = new Set();
-
+            const classesSet = new Set();
+            
             if (snapshot.exists()) {
                 const data = snapshot.val();
                 Object.keys(data).forEach(id => {
                     const st = { cardId: id, ...data[id] };
                     studentsCache.push(st);
-                    if (st.class) uniqueClasses.add(st.class.trim());
+                    if (st.class) classesSet.add(st.class.trim());
                 });
             }
             
-            renderStudentsTable(studentsCache);
-            populateClassesDatalist(Array.from(uniqueClasses));
+            updateClassesDatalist(Array.from(classesSet));
         });
 
-        // پڕکردنەوەی `datalist` بۆ ئەوەی بێتە لیست بەبێ دووبارەبوونەوە
-        function populateClassesDatalist(classList) {
+        // نوێکردنەوەی <datalist> ی پێشنیازی پۆلەکان
+        function updateClassesDatalist(classesArray) {
             const datalist = document.getElementById('classes-list');
             datalist.innerHTML = '';
-            classList.sort().forEach(cls => {
+            classesArray.forEach(clsName => {
                 const option = document.createElement('option');
-                option.value = cls;
+                option.value = clsName;
                 datalist.appendChild(option);
             });
         }
 
-        function renderStudentsTable(list) {
-            const tbody = document.getElementById('all-students-table-body');
-            tbody.innerHTML = '';
-            list.forEach(st => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${st.cardId}</td>
-                    <td>${st.name}</td>
-                    <td>${st.class}</td>
-                    <td>
-                        <button class="btn-edit" data-id="${st.cardId}">دەستکاری</button>
-                        <button class="btn-delete" data-id="${st.cardId}">سڕینەوە</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            tbody.querySelectorAll('.btn-edit').forEach(btn => {
-                btn.onclick = () => startEdit(btn.dataset.id);
-            });
-            tbody.querySelectorAll('.btn-delete').forEach(btn => {
-                btn.onclick = () => deleteStudent(btn.dataset.id);
-            });
-        }
-
-        function startEdit(cardId) {
-            const st = studentsCache.find(s => s.cardId === cardId);
-            if (!st) return;
-            editingCardId = cardId;
-            document.getElementById('card-id').value = st.cardId;
-            document.getElementById('card-id').disabled = true;
-            document.getElementById('student-name').value = st.name;
-            document.getElementById('student-class').value = st.class;
-            document.getElementById('edit-banner').style.display = 'block';
-            document.getElementById('btn-cancel-edit').style.display = 'block';
-            if (st.photo) showPreview(st.photo);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        // لە کاتی ڕێسێتکردن، خانەی پۆلەکە **نەسڕێتەوە** تا خۆت دەستکاری دەکەیت
-        function resetForm() {
+        // ڕێگەگرتن لە سڕینەوەی بەهای خانەی پۆل لە کاتی تۆمارکردن
+        function resetFormKeepClass() {
+            const currentClass = document.getElementById('student-class').value; // پاراستنی پۆلی ئێستا
+            
             editingCardId = null;
-            const currentClassValue = document.getElementById('student-class').value;
-            
-            document.getElementById('student-form').reset();
-            
-            // هێشتنەوەی بەهای خانەی پۆل
-            document.getElementById('student-class').value = currentClassValue;
-            
+            document.getElementById('card-id').value = '';
+            document.getElementById('student-name').value = '';
+            document.getElementById('student-file').value = '';
             document.getElementById('card-id').disabled = false;
             document.getElementById('edit-banner').style.display = 'none';
             document.getElementById('btn-cancel-edit').style.display = 'none';
             document.getElementById('img-preview').style.display = 'none';
             capturedImageBase64 = null;
-            stopWebcam();
             
-            // داگیرساندنی فۆکەس لەسەر ژمارەی کارت بۆ تۆمارکردنی قوتابی دواتر
+            // هێشتنەوەی بەهای پۆل و تەرکیزکردنەوە سەر ژمارەی کارت
+            document.getElementById('student-class').value = currentClass;
             document.getElementById('card-id').focus();
         }
 
-        document.getElementById('btn-cancel-edit').addEventListener('click', resetForm);
-
-        async function deleteStudent(cardId) {
-            if (confirm("دڵنیایت لە سڕینەوەی ئەم قوتابییە؟")) {
-                await remove(ref(db, `students/${cardId}`));
-            }
-        }
+        document.getElementById('btn-cancel-edit').addEventListener('click', resetFormKeepClass);
 
         // پاشکەوتکردن لە Firebase
         document.getElementById('student-form').addEventListener('submit', async (e) => {
@@ -456,18 +374,8 @@
                 await set(ref(db, `students/${cardId}`), updates);
             }
 
-            resetForm();
-        });
-
-        // گەڕان لە ناو لیستەکەدا
-        document.getElementById('student-search').addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase();
-            const filtered = studentsCache.filter(s => 
-                s.name.toLowerCase().includes(query) || 
-                s.class.toLowerCase().includes(query) || 
-                s.cardId.toLowerCase().includes(query)
-            );
-            renderStudentsTable(filtered);
+            resetFormKeepClass();
+            alert("بە سەرکەوتوویی تۆمارکرا!");
         });
     </script>
 </body>
