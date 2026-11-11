@@ -56,12 +56,18 @@
             border-radius: 5px; margin-bottom: 10px; font-size: 14px;
         }
 
-        /* بەشی وێنە و کۆنترۆڵی کامێرا */
         .image-section { text-align: center; margin: 15px 0; background: #fafafa; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
         .img-preview { width: 180px; height: 180px; object-fit: cover; border-radius: 10px; display: none; margin: 10px auto; border: 2px solid #34495e; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
-        #webcam { width: 100%; max-width: 380px; border-radius: 10px; margin: 10px auto; display: block; border: 2px solid #34495e; background: #000; }
+        
+        /* ویدیۆی کامێرا بە overflow hidden بۆ ئەوەی کاتی زومکردن دەرنەچێت */
+        .video-wrapper {
+            width: 100%; max-width: 380px; height: 280px; margin: 10px auto;
+            border-radius: 10px; overflow: hidden; border: 2px solid #34495e; background: #000;
+            display: none; position: relative;
+        }
+        #webcam { width: 100%; height: 100%; object-fit: cover; transform-origin: center center; }
 
-        /* کۆنترۆڵەکانی Zoom In / Zoom Out */
+        /* کۆنترۆڵی Zoom In / Zoom Out */
         .zoom-controls {
             display: none;
             align-items: center;
@@ -95,7 +101,6 @@
         .card-scan-row input#card-id { flex: 1; min-width: 160px; margin: 8px 0; }
         .card-scan-row button { white-space: nowrap; font-size: 13px; padding: 9px 12px; }
         .btn-scan-connect { background: #16a085; color: white; }
-        .btn-scan-connect:hover { background: #128a71; }
         .btn-scan-disconnect { background: #e74c3c; color: white; }
         .scan-status { font-size: 12px; color: #888; margin: -4px 0 10px; }
     </style>
@@ -129,7 +134,6 @@
                 
                 <input type="text" id="student-name" placeholder="ناوی تەواو" required>
                 
-                <!-- خانەی پۆل لەگەڵ datalist بۆ دروستکردنی لیستی بێ دووبارەبوونەوە -->
                 <input type="text" id="student-class" list="class-list" placeholder="پۆل (هەڵبژێرە یان بنووسە)" required autocomplete="off">
                 <datalist id="class-list"></datalist>
 
@@ -137,14 +141,16 @@
                     <label style="display:block; font-weight:bold; margin-bottom:6px;">وێنەی قوتابی:</label>
                     <input type="file" id="student-file" accept="image/*">
                     
-                    <video id="webcam" autoplay playsinline style="display:none;"></video>
+                    <div class="video-wrapper" id="video-wrapper">
+                        <video id="webcam" autoplay playsinline></video>
+                    </div>
                     
-                    <!-- کۆنترۆڵی Zoom In / Zoom Out لەگەڵ Slider -->
+                    <!-- کۆنترۆڵی Zoom In / Zoom Out کە هەمیشە کارا دەبێت -->
                     <div class="zoom-controls" id="zoom-container">
                         <button type="button" class="zoom-btn" id="btn-zoom-out" title="زوم ئاوت">-</button>
-                        <input type="range" id="zoom-slider" min="1" max="1" step="0.1" value="1">
+                        <input type="range" id="zoom-slider" min="1" max="3" step="0.1" value="1">
                         <button type="button" class="zoom-btn" id="btn-zoom-in" title="زوم ئین">+</button>
-                        <span class="zoom-value" id="zoom-val">1x</span>
+                        <span class="zoom-value" id="zoom-val">1.0x</span>
                     </div>
 
                     <div style="margin-top: 8px;">
@@ -178,10 +184,11 @@
         let capturedImageBase64 = null;
         let editingCardId = null;
         let webcamStream = null;
-        let videoTrack = null;
 
         const btnCapture = document.getElementById('btn-capture');
         const btnTakePic = document.getElementById('btn-take-pic');
+        const videoWrapper = document.getElementById('video-wrapper');
+        const video = document.getElementById('webcam');
         const zoomContainer = document.getElementById('zoom-container');
         const zoomSlider = document.getElementById('zoom-slider');
         const zoomValDisplay = document.getElementById('zoom-val');
@@ -192,65 +199,48 @@
         btnTakePic.addEventListener('click', takeSnapshot);
 
         async function startWebcam() {
-            const video = document.getElementById('webcam');
             btnTakePic.style.display = 'inline-block';
+            zoomContainer.style.display = 'flex'; // نیشاندانی بەشی زوم کاتێک کامێرا دەکەوێتە کار
+            videoWrapper.style.display = 'block';
             try {
                 webcamStream = await navigator.mediaDevices.getUserMedia({ 
                     video: { width: { ideal: 1280 }, height: { ideal: 720 } } 
                 });
                 video.srcObject = webcamStream;
-                video.style.display = 'block';
-
-                videoTrack = webcamStream.getVideoTracks()[0];
-                setupCameraCapabilities(videoTrack);
             } catch (e) {
                 alert("نەتوانرا کامێرا بکرێتەوە: " + e.message);
             }
         }
 
-        function setupCameraCapabilities(track) {
-            const capabilities = track.getCapabilities ? track.getCapabilities() : {};
-            
-            if ('zoom' in capabilities) {
-                zoomContainer.style.display = 'flex';
-                zoomSlider.min = capabilities.zoom.min;
-                zoomSlider.max = capabilities.zoom.max;
-                zoomSlider.step = capabilities.zoom.step || 0.1;
-                
-                const settings = track.getSettings();
-                zoomSlider.value = settings.zoom || capabilities.zoom.min;
-                updateZoomDisplay(zoomSlider.value);
+        // کۆنترۆڵکردنی زوم (هەم فیزیکی و هەم دیجیتاڵی بە پێوەری CSS Scale)
+        function updateZoom(val) {
+            let zoomVal = parseFloat(val);
+            if (zoomVal < 1) zoomVal = 1;
+            if (zoomVal > 3) zoomVal = 3;
 
-                const applyZoom = async (val) => {
-                    const zoomVal = Math.min(Math.max(val, capabilities.zoom.min), capabilities.zoom.max);
-                    zoomSlider.value = zoomVal;
-                    updateZoomDisplay(zoomVal);
-                    try {
-                        await track.applyConstraints({ advanced: [{ zoom: zoomVal }] });
-                    } catch (err) {
-                        console.warn("دەستکاریکردنی زوم سەرکەوتوو نەبوو: ", err);
-                    }
-                };
-
-                zoomSlider.oninput = (e) => applyZoom(parseFloat(e.target.value));
-                btnZoomIn.onclick = () => applyZoom(parseFloat(zoomSlider.value) + (capabilities.zoom.step || 0.1) * 2);
-                btnZoomOut.onclick = () => applyZoom(parseFloat(zoomSlider.value) - (capabilities.zoom.step || 0.1) * 2);
-            } else {
-                zoomContainer.style.display = 'none';
-            }
+            zoomSlider.value = zoomVal;
+            zoomValDisplay.innerText = zoomVal.toFixed(1) + 'x';
+            video.style.transform = `scale(${zoomVal})`;
         }
 
-        function updateZoomDisplay(val) {
-            zoomValDisplay.innerText = parseFloat(val).toFixed(1) + 'x';
-        }
+        zoomSlider.oninput = (e) => updateZoom(e.target.value);
+        
+        btnZoomIn.onclick = () => {
+            let current = parseFloat(zoomSlider.value);
+            updateZoom(current + 0.2);
+        };
+
+        btnZoomOut.onclick = () => {
+            let current = parseFloat(zoomSlider.value);
+            updateZoom(current - 0.2);
+        };
 
         function takeSnapshot() {
-            const video = document.getElementById('webcam');
             const canvas = document.getElementById('canvas');
             const ctx = canvas.getContext('2d');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0);
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             capturedImageBase64 = canvas.toDataURL('image/jpeg');
             showPreview(capturedImageBase64);
             stopWebcam();
@@ -260,11 +250,11 @@
             if (webcamStream) {
                 webcamStream.getTracks().forEach(t => t.stop());
                 webcamStream = null;
-                videoTrack = null;
             }
-            document.getElementById('webcam').style.display = 'none';
+            videoWrapper.style.display = 'none';
             btnTakePic.style.display = 'none';
             zoomContainer.style.display = 'none';
+            updateZoom(1); // گەڕانەوەی زوم بۆ باری ئاسایی
         }
 
         function showPreview(src) {
@@ -273,7 +263,6 @@
             img.style.display = 'block';
         }
 
-        // بارکردنی پۆلەکان بەبێ دووبارەبوونەوە بۆ datalist
         onValue(ref(db, 'students'), (snapshot) => {
             const classSet = new Set();
             if (snapshot.exists()) {
@@ -297,16 +286,15 @@
             });
         }
 
-        // بەتاڵکردنەوەی فۆرمەکە بەبێ سڕینەوەی خانەی پۆل
         function resetFormKeepClass() {
-            const currentClass = document.getElementById('student-class').value; // هەڵگرتنی بەهای پۆل
+            const currentClass = document.getElementById('student-class').value;
             editingCardId = null;
             
             document.getElementById('card-id').value = '';
             document.getElementById('student-name').value = '';
             document.getElementById('student-file').value = '';
             
-            document.getElementById('student-class').value = currentClass; // گەڕاندنەوەی پۆلەکە
+            document.getElementById('student-class').value = currentClass;
             document.getElementById('card-id').disabled = false;
             document.getElementById('edit-banner').style.display = 'none';
             document.getElementById('btn-cancel-edit').style.display = 'none';
@@ -317,7 +305,6 @@
 
         document.getElementById('btn-cancel-edit').addEventListener('click', resetFormKeepClass);
 
-        // پاشکەوتکردنی زانیاری قوتابی
         document.getElementById('student-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const cardId = document.getElementById('card-id').value.trim();
