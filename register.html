@@ -126,6 +126,7 @@
                 
                 <input type="text" id="student-name" placeholder="ناوی تەواو" required>
                 
+                <!-- پۆل بە داتالیست (بێ دووبارەبوونەوە و پاراستنی ناوەکە لە کاتی پاککردنەوە) -->
                 <input type="text" id="student-class" list="class-list" placeholder="پۆل (هەڵبژێرە یان بنووسە)" required autocomplete="off">
                 <datalist id="class-list"></datalist>
 
@@ -137,6 +138,7 @@
                         <video id="webcam" autoplay playsinline></video>
                     </div>
                     
+                    <!-- کۆنترۆڵی زوم لەگەڵ سۆلایدەر و دوگمەکانی + و - -->
                     <div class="zoom-controls" id="zoom-container">
                         <button type="button" class="zoom-btn" id="btn-zoom-out" title="زوم ئاوت">-</button>
                         <input type="range" id="zoom-slider" min="1" max="3" step="0.1" value="1">
@@ -176,7 +178,7 @@
         let editingCardId = null;
         let webcamStream = null;
 
-        // بەشی کۆنترۆڵی کارتخوێن (RFID Serial Port)
+        // بەشی پەیوەستکردنی کارتخوێن (RFID Serial Port) لەگەڵ فلتەرکردنی پۆرتەکان
         let serialPort = null;
         let serialReader = null;
         let isReadingSerial = false;
@@ -188,11 +190,25 @@
 
         btnConnect.addEventListener('click', async () => {
             if (!("serial" in navigator)) {
-                alert("وێبگەڕەکەت پشتگیری لە بەستەرەوەی پۆرتی سریال (Web Serial API) ناکات. تکایە لە Google Chrome یان Edge بەکاری بهێنە.");
+                alert("وێبگەڕەکەت پشتگیری لە بەستەرەوەی پۆرتی سریال (Web Serial API) ناکات.");
                 return;
             }
             try {
-                serialPort = await navigator.serial.requestPort();
+                // هەوڵدانی پێشوەختە بۆ دیاریکردنی پۆرتە ڕاستەقینەکانی USB (بۆ دوورکەوتنەوە لە لیستی ttyS)
+                try {
+                    serialPort = await navigator.serial.requestPort({
+                        filters: [
+                            { usbVendorId: 0x1a86 }, // CH340 / CH341
+                            { usbVendorId: 0x0403 }, // FTDI
+                            { usbVendorId: 0x2341 }, // Arduino Original
+                            { usbVendorId: 0x10c4 }  // CP2102
+                        ]
+                    });
+                } catch (filterErr) {
+                    // ئەگەر بە فلتەر نەیدۆزییەوە، ڕێگە بە هەڵبژاردنی ئاسایی دەدات
+                    serialPort = await navigator.serial.requestPort();
+                }
+
                 await serialPort.open({ baudRate: 9600 });
                 
                 btnConnect.style.display = 'none';
@@ -204,7 +220,6 @@
                 readSerialData();
             } catch (err) {
                 console.error("هەڵە لە پەیوەستکردنی پۆرت:", err);
-                alert("نەتوانرا پەیوەست بە کارتخوێن بکرێت: " + err.message);
             }
         });
 
@@ -254,7 +269,7 @@
             }
         }
 
-        // بەشی کامێرا و زوم
+        // بەشی کامێرا و کۆنترۆڵی زوم
         const btnCapture = document.getElementById('btn-capture');
         const btnTakePic = document.getElementById('btn-take-pic');
         const videoWrapper = document.getElementById('video-wrapper');
@@ -332,6 +347,7 @@
             img.style.display = 'block';
         }
 
+        // بارکردنی ناوەڕۆکی پۆلەکان بەبێ دووبارەبوونەوە بۆ داخلکردنی ئۆتۆماتیکی
         onValue(ref(db, 'students'), (snapshot) => {
             const classSet = new Set();
             if (snapshot.exists()) {
@@ -355,6 +371,7 @@
             });
         }
 
+        // بەتاڵکردنەوەی فۆرمەکە بەبێ لەدەستدانی ناوی پۆل
         function resetFormKeepClass() {
             const currentClass = document.getElementById('student-class').value;
             editingCardId = null;
@@ -363,7 +380,7 @@
             document.getElementById('student-name').value = '';
             document.getElementById('student-file').value = '';
             
-            document.getElementById('student-class').value = currentClass;
+            document.getElementById('student-class').value = currentClass; // پاراستنی پۆل
             document.getElementById('card-id').disabled = false;
             document.getElementById('edit-banner').style.display = 'none';
             document.getElementById('btn-cancel-edit').style.display = 'none';
@@ -374,6 +391,7 @@
 
         document.getElementById('btn-cancel-edit').addEventListener('click', resetFormKeepClass);
 
+        // ناردنی داتا بۆ فایەربەیس
         document.getElementById('student-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const cardId = document.getElementById('card-id').value.trim();
