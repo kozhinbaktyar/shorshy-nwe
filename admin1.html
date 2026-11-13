@@ -382,7 +382,7 @@
                 <div id="idcard-preview-wrapper" style="display:none; margin-top: 15px;">
                     <p style="text-align:center; font-size:13px; color:#888; margin-bottom:5px;">نموونەی پێشبینینی یەکەم قوتابی لەم پۆلەدا:</p>
                     
-                    <!-- قاڵبی سەرەکی کارتی ناسنامە -->
+                    <!-- قاڵبی سەرەکی کارتی ناسنامە (وێنەکان ڕاستەوخۆ لۆدکراون بۆ ئەوەی بێ کێشە و خێرا بخوێنرێنەوە) -->
                     <div id="id-card-render-area" class="id-card-design">
                         <div class="id-card-top">
                             <img src="school-logo.png" alt="لۆگۆی قوتابخانە" crossorigin="anonymous">
@@ -1121,7 +1121,19 @@
             idCardPreviewWrapper.style.display = 'none';
         }
 
-        idCardClassSelect.addEventListener('change', (e) => {
+        // فەنکشنێکی یارمەتیدەر بۆ دڵنیابوون لە لۆدبوونی وێنەکان پێش وێنەگرتنی canvas
+        function ensureImageLoaded(imgElement) {
+            return new Promise((resolve) => {
+                if (imgElement.complete && imgElement.naturalHeight !== 0) {
+                    resolve();
+                } else {
+                    imgElement.onload = () => resolve();
+                    imgElement.onerror = () => resolve();
+                }
+            });
+        }
+
+        idCardClassSelect.addEventListener('change', async (e) => {
             const selectedClass = e.target.value;
             if (!selectedClass) {
                 idCardPreviewWrapper.style.display = 'none';
@@ -1140,6 +1152,10 @@
             document.getElementById('preview-st-class').textContent = firstStudent.class;
             document.getElementById('preview-st-id').textContent = firstStudent.cardId;
             idCardPreviewWrapper.style.display = 'block';
+
+            // چاوەڕوان دەبین تا وێنەکان لە DOMـدا بە تەواوی لۆد دەبن
+            const imgEls = document.querySelectorAll('#id-card-render-area img');
+            await Promise.all(Array.from(imgEls).map(img => ensureImageLoaded(img)));
         });
 
         document.getElementById('btn-generate-zip').addEventListener('click', async () => {
@@ -1168,9 +1184,14 @@
                     document.getElementById('preview-st-class').textContent = st.class;
                     document.getElementById('preview-st-id').textContent = st.cardId;
 
+                    // دڵنیابوون لە لۆدبوونی وێنەکانی ناو کارتەکە پێش وێنەگرتن
+                    const imgEls = renderArea.querySelectorAll('img');
+                    await Promise.all(Array.from(imgEls).map(img => ensureImageLoaded(img)));
+
                     const canvas = await html2canvas(renderArea, {
                         scale: 2.5,
                         useCORS: true,
+                        allowTaint: true,
                         backgroundColor: null
                     });
 
